@@ -8,7 +8,7 @@ import urllib
 
 
 def respond_to_comments(listen_to_all = False):
-    DAILY_RESPONSE_LIMIT = 3 # The maximum number of responses we will allow our bot to make each day
+    DAILY_RESPONSE_LIMIT = 1 # The maximum number of responses we will allow our bot to make each day
     RESPONSE_RATE = 10 # The amount of time, in seconds, that we should wait before posting another comment
 
     # Subreddits that our bot will listen to
@@ -34,7 +34,6 @@ def respond_to_comments(listen_to_all = False):
     responseCount = 0 # A running total of the number of unsolicted responses that we have made
     closingDay = None # When the bot reaches its daily response limit, we use this to track the day that it happened
 
-
     # Build the subreddits string
     subreddits = ""
     for subreddit in SUBREDDITS:
@@ -48,8 +47,18 @@ def respond_to_comments(listen_to_all = False):
     # Loop runs indefinitely
     while 1 + 1 == 2:
         for comment in reddit.subreddit(subreddits).stream.comments(skip_existing = True):
+            print("A new comment has come in from the stream! - " + str(datetime.datetime.now()))
+
+            # Skip comments without an author
+            if comment.author == None:
+                print("The comment had no author, so we skipped it! - " + str(datetime.datetime.now()))
+
+                continue
+
             # Skip our own comments
             if comment.author.name == "boggart_bot":
+                print("The comment was one of our own, so we skipped it! - " + str(datetime.datetime.now()))
+
                 continue
             
             # Solicited responses
@@ -62,15 +71,23 @@ def respond_to_comments(listen_to_all = False):
                 else:
                     loreItem = string.capwords(loreItem)
                 finally:
+                    print("Responding with lore! - " + str(datetime.datetime.now()))
+
                     post_lore(comment, loreItem)
             
             elif "Biggie Boggart gimme prawns" in comment.body or "Biggie Boggart gimme crabs" in comment.body:
                 if "prawns" in comment.body:
+                    print("Responding with prawns! - " + str(datetime.datetime.now()))
+
                     post_prawn_or_crab(comment, "prawns")
                 elif "crabs" in comment.body:
+                    print("Responding with crabs! - " + str(datetime.datetime.now()))
+
                     post_prawn_or_crab(comment, "crabs")
             
             elif "Biggie Boggart" in comment.body:
+                print("Responding with a solicited quote! - " + str(datetime.datetime.now()))
+
                 post_quote(comment)
 
             # Unsolicited responses
@@ -81,16 +98,25 @@ def respond_to_comments(listen_to_all = False):
 
                 # If the user's comment contains any of our trigger words, reply with a quote
                 if len(matches) > 0:
+                    print("Responding with an unsolicited quote! - " + str(datetime.datetime.now()) + "\n" + "We've made " + str(responseCount + 1) + " unsolicited response(s) today!")
+
                     post_quote(comment, random.choice(matches))
                     responseCount = responseCount + 1
 
                     if responseCount >= DAILY_RESPONSE_LIMIT:
+                        print("The response limit has been reached! Closing for the day! - " + str(datetime.datetime.now()) + "\n" + "The closing day is " + str(datetime.date.today()))
+
                         closingDay = datetime.date.today()
 
             elif responseCount >= DAILY_RESPONSE_LIMIT:
                 if datetime.date.today() > closingDay:
+                    print("Opening back up! - " + str(datetime.datetime.now()) + "\n" + "The opening day is " + str(datetime.date.today()))
+
                     responseCount = 0
                     closingDay = None
+
+                else:
+                    print("A comment came in, but we were unable to respond to it because we are closed for the day! - " + str(datetime.datetime.now()) + "\n" "The closing day is " + str(closingDay) + " and the current day is " + str(datetime.date.today()))
 
             # Wait for some time before posting another comment
             time.sleep(RESPONSE_RATE)
